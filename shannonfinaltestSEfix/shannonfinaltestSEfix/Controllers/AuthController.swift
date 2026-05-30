@@ -8,7 +8,8 @@
 // ini masih pakai dummy data
 // nanti bisa diubah buat hub ke backend pakai firebase
 import Foundation
-import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 import Combine
 
 class AuthController: ObservableObject {
@@ -17,102 +18,97 @@ class AuthController: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    // Database simulasi
-    private var users: [UserModel] = []
+    private let db = Firestore.firestore()
     
     init() {
-        loadSampleUsers()
+        if let firebaseUser = Auth.auth().currentUser {
+            fetchUserData(uid: firebaseUser.uid)
+        }
     }
     
-    private func loadSampleUsers() {
-        users = [
-            UserModel(id: "001", name: "Admin Aqua", email: "admin@aqua.com", role: "admin"),
-            UserModel(id: "002", name: "Budi Santoso", email: "budi@mail.com", role: "resident"),
-            UserModel(id: "003", name: "Teknisi Jaya", email: "teknisi@aqua.com", role: "technician"),
-            UserModel(id: "004", name: "Siti Aminah", email: "siti@mail.com", role: "community_leader")
-        ]
-    }
-    
-    func register(name: String, email: String, password: String, role: String) -> Bool {
+    func registerEmail(username: String, email: String, password: String, role: String) {
         isLoading = true
         errorMessage = nil
         
-        // Simulasi delay network
-        Thread.sleep(forTimeInterval: 0.5)
-        
-        // Cek email sudah terdaftar
-        if users.contains(where: { $0.email == email }) {
-            errorMessage = "Email sudah terdaftar"
-            isLoading = false
-            return false
+        Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = error.localizedDescription
+                }
+                return
+            }
+            
+            guard let uid = authResult?.user.uid else { return }
+
+            let userData: [String: Any] = [
+                "id": uid,
+                "name": username,
+                "email": email,
+                "role": role
+            ]
+            
+            self.db.collection("users").document(uid).setData(userData) { error in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if let error = error {
+                        self.errorMessage = error.localizedDescription
+                    } else {
+                        self.currentUser = UserModel(id: uid, name: username, email: email, role: role)
+                        self.isLoggedIn = true
+                    }
+                }
+            }
         }
-        
-        // Validasi password
-        if password.count < 6 {
-            errorMessage = "Password minimal 6 karakter"
-            isLoading = false
-            return false
-        }
-        
-        // Buat user baru
-        let newUser = UserModel(
-            id: UUID().uuidString,
-            name: name,
-            email: email,
-            role: role
-        )
-        users.append(newUser)
-        currentUser = newUser
-        isLoggedIn = true
-        isLoading = false
-        return true
     }
     
-    func login(email: String, password: String) -> Bool {
+    func loginEmail(email: String, password: String) {
         isLoading = true
         errorMessage = nil
         
-        // Simulasi delay network
-        Thread.sleep(forTimeInterval: 0.5)
-        
-        // Validasi input
-        if email.isEmpty {
-            errorMessage = "Email harus diisi"
-            isLoading = false
-            return false
+        Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = error.localizedDescription
+                }
+                return
+            }
+            
+            guard let uid = authResult?.user.uid else { return }
+            
+            self.fetchUserData(uid: uid)
         }
-        
-        if password.isEmpty {
-            errorMessage = "Password harus diisi"
-            isLoading = false
-            return false
-        }
-        
-        // Cari user berdasarkan email
-        if let user = users.first(where: { $0.email == email }) {
-            currentUser = user
-            isLoggedIn = true
-            isLoading = false
-            return true
-        }
-        
-        // Demo: auto create user untuk email baru
-        let newUser = UserModel(
-            id: UUID().uuidString,
-            name: email.components(separatedBy: "@").first?.capitalized ?? "User",
-            email: email,
-            role: "resident"
-        )
-        users.append(newUser)
-        currentUser = newUser
-        isLoggedIn = true
-        isLoading = false
-        return true
     }
     
     func logout() {
-        currentUser = nil
-        isLoggedIn = false
-        errorMessage = nil
+        do {
+            try Auth.auth().signOut()
+            DispatchQueue.main.async {
+                self.currentUser = nil
+                self.isLoggedIn = false
+            }
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+    
+    private func fetchUserData(uid: String) {
+        db.collection("users").document(uid).getDocument { document, error in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if let document = document, document.exists, let data = document.data() {
+                    let id = data["id"] as? String ?? uid
+                    let name = data["name"] as? String ?? ""
+                    let email = data["email"] as? String ?? ""
+                    let role = data["role"] as? String ?? ""
+                    
+                    self.currentUser = UserModel(id: id, name: name, email: email, role: role)
+                    self.isLoggedIn = true
+                } else {
+                    self.errorMessage = "Gagal memuat profil akun dari server."
+                }
+            }
+        }
     }
 }

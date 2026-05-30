@@ -31,7 +31,7 @@ struct RegisterView: View {
     var body: some View {
         NavigationView {
             ZStack {
-               
+                
                 Color(.systemGray6).ignoresSafeArea()
                 
                 ScrollView {
@@ -181,7 +181,7 @@ struct RegisterView: View {
                             }
                         }
                         
-                
+                        
                         PrimaryButton(
                             title: "Daftar",
                             icon: "checkmark",
@@ -219,27 +219,8 @@ struct RegisterView: View {
     }
     
     private func register() {
-        // Validasi
-        if name.trimmingCharacters(in: .whitespaces).isEmpty {
-            alertMessage = "Nama lengkap harus diisi"
-            showAlert = true
-            return
-        }
-        
-        if email.trimmingCharacters(in: .whitespaces).isEmpty {
-            alertMessage = "Email harus diisi"
-            showAlert = true
-            return
-        }
-        
-        if !email.contains("@") || !email.contains(".") {
-            alertMessage = "Email tidak valid"
-            showAlert = true
-            return
-        }
-        
-        if password.count < 6 {
-            alertMessage = "Password minimal 6 karakter"
+        if name.isEmpty || email.isEmpty || password.isEmpty {
+            alertMessage = "Semua data harus diisi"
             showAlert = true
             return
         }
@@ -250,58 +231,43 @@ struct RegisterView: View {
             return
         }
         
-        let success = authController.register(
-            name: name,
-            email: email,
-            password: password,
-            role: selectedRole
-        )
-        
-        if success {
-            alertMessage = "Pendaftaran berhasil!\nSelamat datang, \(name)"
-            isSuccess = true
-            showAlert = true
-            isLoggedIn = true
-        } else {
-            alertMessage = authController.errorMessage ?? "Pendaftaran gagal"
-            showAlert = true
-        }
+        authController.registerEmail(username: name, email: email, password: password, role: selectedRole)
     }
-}
-
-
-struct RoleCard: View {
-    let roleName: String
-    let roleIcon: String
-    let isSelected: Bool
-    let action: () -> Void
     
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(isSelected ? Color.blue : Color(.systemGray5))
-                        .frame(width: 55, height: 55)
+    
+    struct RoleCard: View {
+        let roleName: String
+        let roleIcon: String
+        let isSelected: Bool
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(isSelected ? Color.blue : Color(.systemGray5))
+                            .frame(width: 55, height: 55)
+                        
+                        Image(systemName: roleIcon)
+                            .font(.system(size: 22))
+                            .foregroundColor(isSelected ? .white : .gray)
+                    }
                     
-                    Image(systemName: roleIcon)
-                        .font(.system(size: 22))
-                        .foregroundColor(isSelected ? .white : .gray)
+                    Text(roleName)
+                        .font(.caption)
+                        .fontWeight(isSelected ? .semibold : .regular)
+                        .foregroundColor(isSelected ? .blue : .gray)
                 }
-                
-                Text(roleName)
-                    .font(.caption)
-                    .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundColor(isSelected ? .blue : .gray)
+                .frame(width: 80)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isSelected ? Color.blue.opacity(0.08) : Color.clear)
+                )
             }
-            .frame(width: 80)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.blue.opacity(0.08) : Color.clear)
-            )
+            .buttonStyle(PlainButtonStyle())
         }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 

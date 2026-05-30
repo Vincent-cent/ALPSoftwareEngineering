@@ -14,13 +14,12 @@ struct LoginView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     
-    @StateObject private var authController = AuthController()
+    @EnvironmentObject var authController: AuthController
     @AppStorage("isLoggedIn") private var isLoggedIn = false
     
     var body: some View {
         NavigationView {
             ZStack {
-              
                 LinearGradient(
                     colors: [Color.blue.opacity(0.1), Color.white],
                     startPoint: .topLeading,
@@ -30,9 +29,9 @@ struct LoginView: View {
                 
                 ScrollView {
                     VStack(spacing: 30) {
-                    
-                        VStack(spacing: 16) {
                         
+                        VStack(spacing: 16) {
+                            
                             ZStack {
                                 Circle()
                                     .fill(
@@ -62,7 +61,7 @@ struct LoginView: View {
                         }
                         .padding(.top, 40)
                         
-             
+                        
                         VStack(spacing: 24) {
                             CustomTextField(
                                 title: "Email",
@@ -80,7 +79,7 @@ struct LoginView: View {
                         }
                         .padding(.horizontal, 24)
                         
-           
+                        
                         PrimaryButton(
                             title: "Login",
                             icon: "arrow.right",
@@ -90,7 +89,7 @@ struct LoginView: View {
                         }
                         .padding(.horizontal, 24)
                         
-                   
+                        
                         HStack {
                             Text("Belum punya akun?")
                                 .foregroundColor(.gray)
@@ -103,30 +102,6 @@ struct LoginView: View {
                         }
                         .padding(.top, 8)
                         
-          
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("📱 Demo Mode")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.gray)
-                            
-                            Text("Ketik email & password apapun untuk login")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                            
-                            HStack(spacing: 12) {
-                                Text("Contoh: user@mail.com")
-                                    .font(.caption2)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.gray.opacity(0.1))
-                                    .cornerRadius(6)
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 20)
-                        
-                        Spacer(minLength: 30)
                     }
                 }
             }
@@ -139,27 +114,23 @@ struct LoginView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(alertMessage)
+            }.onChange(of: authController.errorMessage) { newValue in
+                if let errorMessage = newValue {
+                    alertMessage = errorMessage
+                    showAlert = true
+                }
             }
         }
     }
     
     private func login() {
         if email.isEmpty || password.isEmpty {
-            alertMessage = "Email dan password harus diisi"
-            showAlert = true
-            return
-        }
-        
-        let success = authController.login(email: email, password: password)
-        
-        if success {
-            withAnimation {
-                isLoggedIn = true
+                alertMessage = "Email dan password harus diisi"
+                showAlert = true
+                return
             }
-        } else {
-            alertMessage = authController.errorMessage ?? "Login gagal"
-            showAlert = true
-        }
+        
+        authController.loginEmail(email: email, password: password)
     }
 }
 
