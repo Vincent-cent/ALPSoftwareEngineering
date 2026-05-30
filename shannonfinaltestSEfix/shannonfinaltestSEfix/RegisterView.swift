@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct RegisterView: View {
+    var isAdminMode: Bool = false
+    
     @State private var name = ""
     @State private var email = ""
     @State private var password = ""
@@ -19,7 +21,6 @@ struct RegisterView: View {
     
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authController: AuthController
-    @AppStorage("isLoggedIn") private var isLoggedIn = false
     
     let roles = [
         ("resident", "Warga", "person.fill"),
@@ -31,243 +32,208 @@ struct RegisterView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                
                 Color(.systemGray6).ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Header
                         VStack(spacing: 12) {
                             ZStack {
                                 Circle()
                                     .fill(Color.blue.opacity(0.15))
                                     .frame(width: 80, height: 80)
                                 
-                                Image(systemName: "person.badge.plus")
-                                    .font(.system(size: 35))
+                                Image(systemName: isAdminMode ? "person.badge.key" : "person.badge.plus")
+                                    .font(.title)
                                     .foregroundColor(.blue)
                             }
                             
-                            Text("Buat Akun Baru")
+                            Text(isAdminMode ? "Buat Akun Pegawai/Warga" : "Daftar Akun Baru")
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text("Laporkan masalah air & sanitasi")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                            if !isAdminMode {
+                                Text("Semua pengguna baru akan terdaftar sebagai Warga (Resident)")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                            }
                         }
                         .padding(.top, 20)
                         
-                        // Form
-                        VStack(spacing: 20) {
+                        VStack(spacing: 16) {
                             
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Nama Lengkap")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.gray)
-                                
-                                HStack {
-                                    Image(systemName: "person")
+                            if isAdminMode {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Pilih Hak Akses (Role)")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
                                         .foregroundColor(.gray)
-                                        .frame(width: 24)
-                                    TextField("Masukkan nama lengkap", text: $name)
-                                        .textInputAutocapitalization(.words)
-                                }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 4)
-                                .background(
-                                    Rectangle()
-                                        .fill(Color(.systemGray5))
-                                        .frame(height: 1),
-                                    alignment: .bottom
-                                )
-                            }
-                            
-                            // Email
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Email")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.gray)
-                                
-                                HStack {
-                                    Image(systemName: "envelope")
-                                        .foregroundColor(.gray)
-                                        .frame(width: 24)
-                                    TextField("email@example.com", text: $email)
-                                        .autocapitalization(.none)
-                                        .keyboardType(.emailAddress)
-                                }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 4)
-                                .background(
-                                    Rectangle()
-                                        .fill(Color(.systemGray5))
-                                        .frame(height: 1),
-                                    alignment: .bottom
-                                )
-                            }
-                            
-                            // Password
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Password")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.gray)
-                                
-                                HStack {
-                                    Image(systemName: "lock")
-                                        .foregroundColor(.gray)
-                                        .frame(width: 24)
-                                    SecureField("Minimal 6 karakter", text: $password)
-                                }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 4)
-                                .background(
-                                    Rectangle()
-                                        .fill(Color(.systemGray5))
-                                        .frame(height: 1),
-                                    alignment: .bottom
-                                )
-                            }
-                            
-                            // Konfirmasi Password
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Konfirmasi Password")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.gray)
-                                
-                                HStack {
-                                    Image(systemName: "lock.shield")
-                                        .foregroundColor(.gray)
-                                        .frame(width: 24)
-                                    SecureField("Ketik ulang password", text: $confirmPassword)
-                                }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 4)
-                                .background(
-                                    Rectangle()
-                                        .fill(Color(.systemGray5))
-                                        .frame(height: 1),
-                                    alignment: .bottom
-                                )
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        
-                        // Role Selection
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Pilih Role")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.gray)
-                                .padding(.horizontal, 24)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(roles, id: \.0) { role in
-                                        RoleCard(
-                                            roleName: role.1,
-                                            roleIcon: role.2,
-                                            isSelected: selectedRole == role.0
-                                        ) {
-                                            selectedRole = role.0
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 15) {
+                                            ForEach(roles, id: \.0) { role in
+                                                RoleCard(
+                                                    roleName: role.1,
+                                                    roleIcon: role.2,
+                                                    isSelected: selectedRole == role.0
+                                                ) {
+                                                    selectedRole = role.0
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                                .padding(.horizontal, 24)
+                                .padding(.bottom, 10)
+                            }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Nama Lengkap")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.gray)
+                                HStack {
+                                    Image(systemName: "person").foregroundColor(.gray)
+                                    TextField("Masukkan nama", text: $name)
+                                }
+                                .padding().background(Color(.systemBackground)).cornerRadius(10)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Email")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.gray)
+                                HStack {
+                                    Image(systemName: "envelope").foregroundColor(.gray)
+                                    TextField("Masukkan email", text: $email)
+                                        .keyboardType(.emailAddress)
+                                        .autocapitalization(.none)
+                                }
+                                .padding().background(Color(.systemBackground)).cornerRadius(10)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Password")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.gray)
+                                HStack {
+                                    Image(systemName: "lock").foregroundColor(.gray)
+                                    SecureField("Min. 6 karakter", text: $password)
+                                }
+                                .padding().background(Color(.systemBackground)).cornerRadius(10)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Konfirmasi Password")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.gray)
+                                HStack {
+                                    Image(systemName: "lock.shield").foregroundColor(.gray)
+                                    SecureField("Ulangi password", text: $confirmPassword)
+                                }
+                                .padding().background(Color(.systemBackground)).cornerRadius(10)
                             }
                         }
+                        .padding(.horizontal)
                         
-                        
-                        PrimaryButton(
-                            title: "Daftar",
-                            icon: "checkmark",
-                            isLoading: authController.isLoading
-                        ) {
-                            register()
+                        Button(action: registerAction) {
+                            HStack {
+                                if authController.isLoading {
+                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white)).padding(.trailing, 8)
+                                }
+                                Text(authController.isLoading ? "Memproses..." : (isAdminMode ? "Buat Akun Sekarang" : "Daftar Sekarang"))
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(name.isEmpty || email.isEmpty || password.isEmpty ? Color.gray : Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 8)
+                        .disabled(name.isEmpty || email.isEmpty || password.isEmpty || authController.isLoading)
+                        .padding(.horizontal)
+                        .padding(.top, 10)
                         
-                        Spacer(minLength: 30)
+                        if !isAdminMode {
+                            Button("Sudah punya akun? Login di sini") { dismiss() }
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                                .padding(.bottom, 30)
+                        } else {
+                            Spacer(minLength: 30)
+                        }
                     }
                 }
             }
-            .navigationTitle("Daftar")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Batal") {
-                        dismiss()
+            .navigationBarItems(leading: Button(isAdminMode ? "Tutup" : "Batal") { dismiss() })
+            .alert(isPresented: $showAlert) {
+                Alert(
+                    title: Text(isSuccess ? "Berhasil" : "Peringatan"),
+                    message: Text(alertMessage),
+                    dismissButton: .default(Text("OK")) {
+                        if isSuccess { dismiss() }
                     }
-                    .foregroundColor(.blue)
-                }
-            }
-            .alert("Info", isPresented: $showAlert) {
-                Button("OK", role: .cancel) {
-                    if isSuccess {
-                        dismiss()
-                    }
-                }
-            } message: {
-                Text(alertMessage)
+                )
             }
         }
     }
     
-    private func register() {
-        if name.isEmpty || email.isEmpty || password.isEmpty {
-            alertMessage = "Semua data harus diisi"
-            showAlert = true
-            return
-        }
-        
+    private func registerAction() {
         if password != confirmPassword {
-            alertMessage = "Password tidak cocok"
-            showAlert = true
-            return
+            alertMessage = "Konfirmasi password tidak cocok"
+            showAlert = true; return
+        }
+        if password.count < 6 {
+            alertMessage = "Password minimal harus 6 karakter"
+            showAlert = true; return
         }
         
         authController.registerEmail(username: name, email: email, password: password, role: selectedRole)
-    }
-    
-    
-    struct RoleCard: View {
-        let roleName: String
-        let roleIcon: String
-        let isSelected: Bool
-        let action: () -> Void
         
-        var body: some View {
-            Button(action: action) {
-                VStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(isSelected ? Color.blue : Color(.systemGray5))
-                            .frame(width: 55, height: 55)
-                        
-                        Image(systemName: roleIcon)
-                            .font(.system(size: 22))
-                            .foregroundColor(isSelected ? .white : .gray)
-                    }
-                    
-                    Text(roleName)
-                        .font(.caption)
-                        .fontWeight(isSelected ? .semibold : .regular)
-                        .foregroundColor(isSelected ? .blue : .gray)
-                }
-                .frame(width: 80)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(isSelected ? Color.blue.opacity(0.08) : Color.clear)
-                )
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if let error = authController.errorMessage {
+                alertMessage = error
+                isSuccess = false
+                showAlert = true
+            } else {
+                alertMessage = isAdminMode ? "Akun \(selectedRole) berhasil dibuat!" : "Pendaftaran berhasil! Akun Anda terdaftar sebagai Warga."
+                isSuccess = true
+                showAlert = true
             }
-            .buttonStyle(PlainButtonStyle())
         }
+    }
+}
+
+struct RoleCard: View {
+    let roleName: String
+    let roleIcon: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color.blue : Color(.systemGray5))
+                        .frame(width: 55, height: 55)
+                    Image(systemName: roleIcon)
+                        .font(.system(size: 22))
+                        .foregroundColor(isSelected ? .white : .gray)
+                }
+                Text(roleName)
+                    .font(.caption)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .blue : .gray)
+            }
+            .frame(width: 80)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 12).fill(isSelected ? Color.blue.opacity(0.08) : Color.clear))
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

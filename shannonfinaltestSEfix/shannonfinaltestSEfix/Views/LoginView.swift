@@ -107,7 +107,7 @@ struct LoginView: View {
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showRegister) {
-                RegisterView()
+                RegisterView(isAdminMode: false)
                     .environmentObject(authController)
             }
             .alert("Info", isPresented: $showAlert) {

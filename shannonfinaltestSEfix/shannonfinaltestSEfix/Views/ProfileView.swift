@@ -9,60 +9,61 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authController: AuthController
-    @AppStorage("isLoggedIn") private var isLoggedIn = false
     @State private var showLogoutAlert = false
+    @State private var showAdminRegister = false
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
-               
+                    
                     ProfileHeader(user: authController.currentUser)
                     
-                
                     StatsSection()
                     
-   
                     VStack(spacing: 12) {
+
+                        if authController.currentUser?.role == "admin" {
+                            ProfileMenuItem(
+                                icon: "person.badge.plus",
+                                title: "Buat Akun Pegawai",
+                                subtitle: "Tambahkan Admin, Teknisi, atau RT",
+                                color: .purple
+                            ) {
+                                showAdminRegister = true
+                            }
+                        }
+                        
                         ProfileMenuItem(
                             icon: "doc.text.fill",
                             title: "Riwayat Laporan",
                             subtitle: "Lihat semua laporan yang pernah dibuat",
                             color: .blue
-                        ) {
-                            // Navigasi ke riwayat
-                        }
+                        ) { }
                         
                         ProfileMenuItem(
                             icon: "bell.fill",
                             title: "Notifikasi",
                             subtitle: "Pengaturan notifikasi",
                             color: .orange
-                        ) {
-                            // Navigasi ke notifikasi
-                        }
+                        ) { }
                         
                         ProfileMenuItem(
                             icon: "info.circle.fill",
                             title: "Tentang Aplikasi",
                             subtitle: "Informasi tentang AquaAlert",
                             color: .green
-                        ) {
-                            // Navigasi ke tentang
-                        }
+                        ) { }
                         
                         ProfileMenuItem(
                             icon: "envelope.fill",
                             title: "Bantuan & Dukungan",
                             subtitle: "Hubungi tim kami",
                             color: .purple
-                        ) {
-                            // Navigasi ke bantuan
-                        }
+                        ) { }
                     }
                     .padding(.horizontal)
                     
-                    // Logout Button
                     Button(action: {
                         showLogoutAlert = true
                     }) {
@@ -81,7 +82,6 @@ struct ProfileView: View {
                     .padding(.horizontal)
                     .padding(.top, 10)
                     
-                
                     Text("Versi 1.0.0")
                         .font(.caption)
                         .foregroundColor(.gray)
@@ -98,12 +98,13 @@ struct ProfileView: View {
                 Button("Batal", role: .cancel) { }
                 Button("Logout", role: .destructive) {
                     authController.logout()
-                    withAnimation {
-                        isLoggedIn = false
-                    }
                 }
             } message: {
                 Text("Apakah Anda yakin ingin keluar?")
+            }
+            .sheet(isPresented: $showAdminRegister) {
+                RegisterView(isAdminMode: true)
+                    .environmentObject(authController)
             }
         }
     }

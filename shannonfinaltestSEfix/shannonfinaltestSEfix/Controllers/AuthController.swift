@@ -22,7 +22,10 @@ class AuthController: ObservableObject {
     
     init() {
         if let firebaseUser = Auth.auth().currentUser {
+            self.isLoading = true
             fetchUserData(uid: firebaseUser.uid)
+        } else {
+            self.isLoggedIn = false
         }
     }
     
@@ -40,7 +43,7 @@ class AuthController: ObservableObject {
             }
             
             guard let uid = authResult?.user.uid else { return }
-
+            
             let userData: [String: Any] = [
                 "id": uid,
                 "name": username,
@@ -99,14 +102,18 @@ class AuthController: ObservableObject {
                 self.isLoading = false
                 if let document = document, document.exists, let data = document.data() {
                     let id = data["id"] as? String ?? uid
-                    let name = data["name"] as? String ?? ""
+                    let name = data["name"] as? String ?? "User"
                     let email = data["email"] as? String ?? ""
-                    let role = data["role"] as? String ?? ""
+                    let role = data["role"] as? String ?? "resident"
                     
                     self.currentUser = UserModel(id: id, name: name, email: email, role: role)
                     self.isLoggedIn = true
+                    self.errorMessage = nil
                 } else {
-                    self.errorMessage = "Gagal memuat profil akun dari server."
+                    try? Auth.auth().signOut()
+                    self.currentUser = nil
+                    self.isLoggedIn = false
+                    self.errorMessage = "Sesi telah berakhir atau profil tidak ditemukan. Silakan login kembali."
                 }
             }
         }

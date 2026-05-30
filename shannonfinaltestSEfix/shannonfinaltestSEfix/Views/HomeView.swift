@@ -8,35 +8,38 @@
 import SwiftUI
 
 struct HomeView: View {
-    @AppStorage("isLoggedIn") private var isLoggedIn = false
-    @StateObject private var authController = AuthController()
-    @StateObject private var reportController = ReportController()
+    @EnvironmentObject var authController: AuthController
+    @EnvironmentObject var reportController: ReportController
     @State private var selectedTab = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Tab 1: Home
-            HomeMainView()
-                .tabItem {
-                    Label("Beranda", systemImage: "house.fill")
-                }
-                .tag(0)
+            if authController.currentUser?.role == "admin" {
+                            AdminHomeView()
+                                .tabItem {
+                                    Label("Dashboard", systemImage: "shield.fill")
+                                }
+                                .tag(0)
+                        } else {
+                            HomeMainView()
+                                .tabItem {
+                                    Label("Beranda", systemImage: "house.fill")
+                                }
+                                .tag(0)
+                        }
             
-            // Tab 2: Reports
             ReportHistoryView()
                 .tabItem {
                     Label("Laporan", systemImage: "list.bullet.rectangle")
                 }
                 .tag(1)
             
-            // Tab 3: Status
             ReportStatusView()
                 .tabItem {
                     Label("Status", systemImage: "chart.line.text.clipboard")
                 }
                 .tag(2)
             
-            // Tab 4: Profile
             ProfileView()
                 .tabItem {
                     Label("Profil", systemImage: "person.circle.fill")
@@ -44,40 +47,72 @@ struct HomeView: View {
                 .tag(3)
         }
         .accentColor(.blue)
-        .environmentObject(authController)
-        .environmentObject(reportController)
     }
 }
-
 
 struct HomeMainView: View {
     @EnvironmentObject var authController: AuthController
     @EnvironmentObject var reportController: ReportController
+    @State private var showLogoutAlert = false
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Welcome Header
-                    WelcomeHeader(userName: authController.currentUser?.name ?? "Pengguna")
+                VStack(spacing: 20) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Selamat Datang,")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            
+                            Text(authController.currentUser?.name ?? "Pengguna")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            showLogoutAlert = true
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(authController.currentUser?.avatarColor ?? .blue)
+                                    .frame(width: 45, height: 45)
+                                
+                                Text(String(authController.currentUser?.name.prefix(1) ?? "U").uppercased())
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top)
                     
-                    // Stats Cards
                     StatsRow(reportController: reportController)
-                    
-                    // Quick Actions
+                        .padding(.horizontal)
+
                     QuickActionsSection()
+                        .padding(.horizontal)
                     
-                    // Recent Reports
-                    RecentReportsSection(reports: Array(reportController.reports.prefix(3)))
-                    
-                    // Info Card
                     InfoCard()
+                        .padding(.horizontal)
+                    
+                    RecentReportsSection(reports: Array(reportController.reports.prefix(3)))
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
+                    
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
             }
-            .background(Color(.systemGray6).ignoresSafeArea())
             .navigationBarHidden(true)
+            .alert("Keluar Akun", isPresented: $showLogoutAlert) {
+                Button("Batal", role: .cancel) { }
+                Button("Keluar", role: .destructive) {
+                    authController.logout()
+                }
+            } message: {
+                Text("Apakah Anda yakin ingin keluar dari aplikasi?")
+            }
         }
     }
 }
@@ -344,6 +379,127 @@ struct InfoCard: View {
             )
         )
         .cornerRadius(16)
+    }
+}
+
+// MARK: - BERANDA KHUSUS ADMIN
+struct AdminHomeView: View {
+    @EnvironmentObject var authController: AuthController
+    @EnvironmentObject var reportController: ReportController
+    @State private var showLogoutAlert = false
+    
+    @State private var selectedReport: ReportModel? = nil
+    @State private var showActionSheet = false
+    
+    @State private var selectedStatus = "In Progress"
+    @State private var technicianName = ""
+    
+    let statusOptions = ["Pending", "Verified", "In Progress", "Completed", "Rejected"]
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Panel Admin")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        Text(authController.currentUser?.name ?? "Admin")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                    }
+                    Spacer()
+                    Button(action: { showLogoutAlert = true }) {
+                        ZStack {
+                            Circle().fill(Color.purple).frame(width: 45, height: 45)
+                            Image(systemName: "shield.fill").foregroundColor(.white)
+                        }
+                    }
+                }
+                .padding()
+                
+                StatsRow(reportController: reportController)
+                    .padding(.horizontal)
+
+                VStack(alignment: .leading) {
+                    Text("Manajemen Laporan Masuk")
+                        .font(.headline)
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                    
+                    List(reportController.reports) { report in
+                        Button(action: {
+                            self.selectedReport = report
+                            self.selectedStatus = report.status
+                            self.technicianName = ""
+                            self.showActionSheet = true
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(report.title).font(.headline).foregroundColor(.primary)
+                                    Text(report.location).font(.caption).foregroundColor(.gray)
+                                    Text("Status: \(report.status)")
+                                        .font(.caption)
+                                        .foregroundColor(report.statusColor)
+                                        .bold()
+                                }
+                                Spacer()
+                                Image(systemName: "pencil.circle.fill")
+                                    .foregroundColor(.blue)
+                                    .font(.title2)
+                            }
+                        }
+                    }
+                    .listStyle(PlainListStyle())
+                }
+            }
+            .navigationBarHidden(true)
+            .alert("Keluar Akun", isPresented: $showLogoutAlert) {
+                Button("Batal", role: .cancel) { }
+                Button("Keluar", role: .destructive) { authController.logout() }
+            } message: { Text("Yakin ingin keluar?") }
+            
+            .sheet(isPresented: $showActionSheet) {
+                if let report = selectedReport {
+                    NavigationView {
+                        Form {
+                            Section(header: Text("Detail Laporan")) {
+                                Text(report.title).bold()
+                                Text(report.description).font(.caption).foregroundColor(.gray)
+                            }
+                            
+                            Section(header: Text("Ubah Status")) {
+                                Picker("Status", selection: $selectedStatus) {
+                                    ForEach(statusOptions, id: \.self) {
+                                        Text($0)
+                                    }
+                                }
+                            }
+                            
+                            Section(header: Text("Tugaskan Teknisi")) {
+                                TextField("Nama Teknisi (Misal: Pak Budi)", text: $technicianName)
+                            }
+                            
+                            Button(action: {
+                                reportController.assignTechnicianAndStatus(
+                                    reportId: report.reportId,
+                                    newStatus: selectedStatus,
+                                    technicianName: technicianName.isEmpty ? "Belum ada" : technicianName
+                                )
+                                showActionSheet = false
+                            }) {
+                                Text("Simpan Perubahan")
+                                    .frame(maxWidth: .infinity)
+                                    .foregroundColor(.white)
+                            }
+                            .listRowBackground(Color.blue)
+                        }
+                        .navigationTitle("Kelola Laporan")
+                        .navigationBarItems(trailing: Button("Batal") { showActionSheet = false })
+                    }
+                }
+            }
+        }
     }
 }
 

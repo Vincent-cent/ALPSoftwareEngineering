@@ -108,6 +108,19 @@ class ReportController: ObservableObject {
         }
     }
     
+    func assignTechnicianAndStatus(reportId: String, newStatus: String, technicianName: String) {
+            db.collection("reports").document(reportId).updateData([
+                "status": newStatus,
+                "assigned_technician": technicianName
+            ]) { error in
+                if let e = error {
+                    print("Gagal menugaskan teknisi: \(e.localizedDescription)")
+                } else {
+                    print("Berhasil menugaskan teknisi \(technicianName) dan mengubah status ke \(newStatus)")
+                }
+            }
+        }
+    
     func getReportsByStatus(status: String) -> [ReportModel] {
         return reports.filter { $0.status == status }
     }

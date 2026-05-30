@@ -20,12 +20,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct shannonfinaltestSEfixApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
-    @StateObject var authController = AuthController()
-    
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(authController)
         }
     }
 }

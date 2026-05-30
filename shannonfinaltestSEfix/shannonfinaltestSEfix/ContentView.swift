@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+import SwiftUI
+
 struct ContentView: View {
     @StateObject private var authController = AuthController()
     @StateObject private var reportController = ReportController()
